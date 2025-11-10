@@ -12,7 +12,8 @@ const int depth  = 255;
 Model *model = NULL;
 int *zbuffer = NULL;
 Vec3f light_dir(0,0,-1);
-Vec3f camera(0,0,3);
+Vec3f eye(1,1,3);
+Vec3f center(0,0,0);
 
 Vec3f m2v(Matrix m) {
     return Vec3f(m[0][0]/m[3][0], m[1][0]/m[3][0], m[2][0]/m[3][0]);
@@ -37,6 +38,20 @@ Matrix viewport(int x, int y, int w, int h) {
     m[1][1] = h/2.f;
     m[2][2] = depth/2.f;
     return m;
+}
+
+Matrix lookat(Vec3f eye, Vec3f center, Vec3f up) {
+    Vec3f z = (eye-center).normalize();
+    Vec3f x = (up^z).normalize();
+    Vec3f y = (z^x).normalize();
+    Matrix res = Matrix::identity(4);
+    for (int i=0; i<3; i++) {
+        res[0][i] = x[i];
+        res[1][i] = y[i];
+        res[2][i] = z[i];
+        res[i][3] = -center[i];
+    }
+    return res;
 }
 
 void triangle(Vec3i t0, Vec3i t1, Vec3i t2, Vec2i uv0, Vec2i uv1, Vec2i uv2, TGAImage &image, float intensity, int *zbuffer) {
@@ -83,9 +98,10 @@ int main(int argc, char** argv) {
     }
 
     { // draw the model
+       Matrix ModelView  = lookat(eye, center, Vec3f(0,1,0));
         Matrix Projection = Matrix::identity(4);
         Matrix ViewPort   = viewport(width/8, height/8, width*3/4, height*3/4);
-        Projection[3][2] = -1.f/camera.z;
+        Projection[3][2] = -1.f/(eye-center).norm();
 
         TGAImage image(width, height, TGAImage::RGB);
         for (int i=0; i<model->nfaces(); i++) {
@@ -94,7 +110,7 @@ int main(int argc, char** argv) {
             Vec3f world_coords[3];
             for (int j=0; j<3; j++) {
                 Vec3f v = model->vert(face[j]);
-                screen_coords[j] =  m2v(ViewPort*Projection*v2m(v));
+                screen_coords[j] =  Vec3f(ViewPort*Projection*ModelView*Matrix(v));
                 world_coords[j]  = v;
             }
             Vec3f n = (world_coords[2]-world_coords[0])^(world_coords[1]-world_coords[0]);

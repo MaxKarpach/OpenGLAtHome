@@ -83,3 +83,4 @@ Vec2i Model::uv(int iface, int nvert) {
     int idx = faces_[iface][nvert][1];
     return Vec2i(uv_[idx].x*diffusemap_.get_width(), uv_[idx].y*diffusemap_.get_height());
 }
+
