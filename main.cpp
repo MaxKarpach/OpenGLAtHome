@@ -15,6 +15,29 @@ Vec3f light_dir(0,0,-1);
 Vec3f eye(1,1,3);
 Vec3f center(0,0,0);
 
+class Camera {
+public:
+    Vec3f eye;
+    Vec3f center;
+    Vec3f up;
+
+    Camera(Vec3f eye, Vec3f center, Vec3f up) : eye(eye), center(center), up(up) {}
+
+    Matrix lookat() {
+        Vec3f z = (eye-center).normalize();
+        Vec3f x = (up^z).normalize();
+        Vec3f y = (z^x).normalize();
+        Matrix res = Matrix::identity(4);
+        for (int i=0; i<3; i++) {
+            res[0][i] = x[i];
+            res[1][i] = y[i];
+            res[2][i] = z[i];
+            res[i][3] = -center[i];
+        }
+        return res;
+    }
+};
+
 Vec3f m2v(Matrix m) {
     return Vec3f(m[0][0]/m[3][0], m[1][0]/m[3][0], m[2][0]/m[3][0]);
 }
@@ -40,22 +63,8 @@ Matrix viewport(int x, int y, int w, int h) {
     return m;
 }
 
-Matrix lookat(Vec3f eye, Vec3f center, Vec3f up) {
-    Vec3f z = (eye-center).normalize();
-    Vec3f x = (up^z).normalize();
-    Vec3f y = (z^x).normalize();
-    Matrix res = Matrix::identity(4);
-    for (int i=0; i<3; i++) {
-        res[0][i] = x[i];
-        res[1][i] = y[i];
-        res[2][i] = z[i];
-        res[i][3] = -center[i];
-    }
-    return res;
-}
-
 void triangle(Vec3i t0, Vec3i t1, Vec3i t2, Vec2i uv0, Vec2i uv1, Vec2i uv2, TGAImage &image, float intensity, int *zbuffer) {
-    if (t0.y==t1.y && t0.y==t2.y) return; // i dont care about degenerate triangles
+    if (t0.y==t1.y && t0.y==t2.y) return;
     if (t0.y>t1.y) { std::swap(t0, t1); std::swap(uv0, uv1); }
     if (t0.y>t2.y) { std::swap(t0, t2); std::swap(uv0, uv2); }
     if (t1.y>t2.y) { std::swap(t1, t2); std::swap(uv1, uv2); }
@@ -65,7 +74,7 @@ void triangle(Vec3i t0, Vec3i t1, Vec3i t2, Vec2i uv0, Vec2i uv1, Vec2i uv2, TGA
         bool second_half = i>t1.y-t0.y || t1.y==t0.y;
         int segment_height = second_half ? t2.y-t1.y : t1.y-t0.y;
         float alpha = (float)i/total_height;
-        float beta  = (float)(i-(second_half ? t1.y-t0.y : 0))/segment_height; // be careful: with above conditions no division by zero here
+        float beta  = (float)(i-(second_half ? t1.y-t0.y : 0))/segment_height;
         Vec3i A   =               t0  + Vec3f(t2-t0  )*alpha;
         Vec3i B   = second_half ? t1  + Vec3f(t2-t1  )*beta : t0  + Vec3f(t1-t0  )*beta;
         Vec2i uvA =               uv0 +      (uv2-uv0)*alpha;
@@ -97,8 +106,9 @@ int main(int argc, char** argv) {
         zbuffer[i] = std::numeric_limits<int>::min();
     }
 
-    { // draw the model
-       Matrix ModelView  = lookat(eye, center, Vec3f(0,1,0));
+    {
+        Camera camera(eye, center, Vec3f(0,1,0));
+        Matrix ModelView  = camera.lookat();
         Matrix Projection = Matrix::identity(4);
         Matrix ViewPort   = viewport(width/8, height/8, width*3/4, height*3/4);
         Projection[3][2] = -1.f/(eye-center).norm();
@@ -125,18 +135,18 @@ int main(int argc, char** argv) {
             }
         }
 
-        image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+        image.flip_vertically();
         image.write_tga_file("output.tga");
     }
 
-    { // dump z-buffer (debugging purposes only)
+    {
         TGAImage zbimage(width, height, TGAImage::GRAYSCALE);
         for (int i=0; i<width; i++) {
             for (int j=0; j<height; j++) {
                 zbimage.set(i, j, TGAColor(zbuffer[i+j*width], 1));
             }
         }
-        zbimage.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+        zbimage.flip_vertically();
         zbimage.write_tga_file("zbuffer.tga");
     }
     delete model;
