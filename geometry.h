@@ -3,6 +3,8 @@
 
 #include <cmath>
 #include <vector>
+#include <iostream>
+#include <ostream>
 
 class Matrix;
 

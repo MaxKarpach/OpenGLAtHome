@@ -4,6 +4,7 @@
 #include "tgaimage.h"
 #include "model.h"
 #include "geometry.h"
+#include "camera.h"
 
 const int width  = 800;
 const int height = 800;
@@ -12,31 +13,9 @@ const int depth  = 255;
 Model *model = NULL;
 int *zbuffer = NULL;
 Vec3f light_dir(0,0,-1);
-Vec3f eye(1,1,3);
+Vec3f eye(-1,1,3);
 Vec3f center(0,0,0);
-
-class Camera {
-public:
-    Vec3f eye;
-    Vec3f center;
-    Vec3f up;
-
-    Camera(Vec3f eye, Vec3f center, Vec3f up) : eye(eye), center(center), up(up) {}
-
-    Matrix lookat() {
-        Vec3f z = (eye-center).normalize();
-        Vec3f x = (up^z).normalize();
-        Vec3f y = (z^x).normalize();
-        Matrix res = Matrix::identity(4);
-        for (int i=0; i<3; i++) {
-            res[0][i] = x[i];
-            res[1][i] = y[i];
-            res[2][i] = z[i];
-            res[i][3] = -center[i];
-        }
-        return res;
-    }
-};
+Vec3f up(0, 1, 0);
 
 Vec3f m2v(Matrix m) {
     return Vec3f(m[0][0]/m[3][0], m[1][0]/m[3][0], m[2][0]/m[3][0]);
@@ -107,7 +86,7 @@ int main(int argc, char** argv) {
     }
 
     {
-        Camera camera(eye, center, Vec3f(0,1,0));
+        Camera camera(eye, center, up);
         Matrix ModelView  = camera.lookat();
         Matrix Projection = Matrix::identity(4);
         Matrix ViewPort   = viewport(width/8, height/8, width*3/4, height*3/4);
