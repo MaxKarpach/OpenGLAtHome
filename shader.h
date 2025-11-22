@@ -36,4 +36,32 @@ public:
     virtual bool fragment(Vec3f bar, TGAColor& color);
 };
 
+class CubeShader : public IShader {
+public:
+    Model* model;
+    Matrix model_matrix;
+    Matrix view_matrix;
+    Matrix proj_matrix;
+    Matrix viewport_matrix;
+    Vec3f light_dir;
+    TGAColor cube_color;
+    float transparency;
+    
+    std::vector<Vec3f> cube_vertices;
+    std::vector<std::vector<int>> cube_faces;
+
+    void setModelMatrix(const Matrix& model);
+    void setViewMatrix(const Matrix& view);
+    void setProjMatrix(const Matrix& proj);
+    void setViewportMatrix(const Matrix& viewport);
+    void setLightDir(const Vec3f& light);
+    void setColor(const TGAColor& color);
+    void setTransparency(float alpha);
+    void setCubeGeometry(const std::vector<Vec3f>& vertices, const std::vector<std::vector<int>>& faces);
+    int getFaceCount() const;
+    
+    virtual Vec4f vertex(int iface, int nthvert);
+    virtual bool fragment(Vec3f bar, TGAColor& color);
+};
+
 #endif //__SHADER_H__
